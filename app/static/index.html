@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
+<title>ParcelDeck</title>
+<style>
+:root{--bg:#0f1115;--panel:#171a21;--panel2:#1e222b;--line:#2a2f3a;--text:#e8eaf0;--muted:#8b93a5;--accent:#f5a524;
+--ok:#3ecf8e;--info:#5aa9ff;--warn:#f5a524;--bad:#ff5d5d;--idle:#6b7385;--radius:14px}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+.wrap{max-width:860px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 16px 90px}
+header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+header h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.01em;display:flex;align-items:center;gap:8px}
+header .sp{flex:1}
+.iconbtn{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 11px;cursor:pointer;color:var(--muted)}
+.iconbtn:hover{color:var(--text)}
+.add{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:grid;gap:8px;margin-bottom:16px}
+.row{display:flex;gap:8px;flex-wrap:wrap}
+.add input,.add textarea,dialog input,dialog textarea{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none;min-width:0}
+.add input:focus,.add textarea:focus,dialog input:focus{border-color:var(--accent)}
+#num{flex:2 1 220px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-transform:uppercase}
+#num::placeholder{text-transform:none;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}
+#label{flex:1 1 160px}
+.btn{background:var(--accent);color:#1a1200;border:0;border-radius:10px;padding:10px 16px;font-weight:650;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--muted);border:1px solid var(--line);font-weight:500}
+.btn.danger{background:transparent;color:var(--bad);border:1px solid #4a2a2e}
+.btn:disabled{opacity:.6;cursor:wait}
+.links{font-size:13px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.links a{color:var(--muted);cursor:pointer;text-decoration:underline dotted}
+.tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto}
+.tab{background:none;border:1px solid transparent;border-radius:999px;padding:6px 14px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.tab.on{background:var(--panel);border-color:var(--line);color:var(--text)}
+.tab .c{opacity:.6;margin-left:4px;font-size:13px}
+.list{display:grid;gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 14px 12px;cursor:pointer;display:grid;gap:8px;transition:border-color .15s}
+.card:hover{border-color:#3a4150}
+.top{display:flex;align-items:flex-start;gap:10px}
+.title{font-weight:650;flex:1;min-width:0}
+.title small{display:block;font-weight:400;color:var(--muted);font-family:ui-monospace,Menlo,monospace;font-size:12.5px;margin-top:1px;overflow:hidden;text-overflow:ellipsis}
+.pill{font-size:12px;font-weight:650;padding:3px 9px;border-radius:999px;white-space:nowrap;border:1px solid currentColor}
+.s-Delivered{color:var(--ok)} .s-OutForDelivery,.s-AvailableForPickup{color:var(--accent)}
+.s-InTransit,.s-InfoReceived{color:var(--info)} .s-Exception,.s-DeliveryFailure{color:var(--bad)}
+.s-NotFound,.s-Pending,.s-Expired{color:var(--idle)}
+.last{color:#c9cedb;font-size:14px}
+.meta{display:flex;gap:12px;color:var(--muted);font-size:12.5px;flex-wrap:wrap}
+.bar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.bar i{height:4px;border-radius:4px;background:var(--line)}
+.bar i.on{background:currentColor}
+.err{color:var(--bad);font-size:13px}
+.empty{color:var(--muted);text-align:center;padding:50px 10px}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:18px;padding:0;width:min(640px,96vw);max-height:90vh}
+dialog::backdrop{background:#000a}
+.dh{padding:18px 18px 10px;border-bottom:1px solid var(--line)}
+.db{padding:14px 18px;overflow:auto;max-height:60vh}
+.df{padding:12px 18px;border-top:1px solid var(--line);display:flex;gap:8px;flex-wrap:wrap}
+.tl{list-style:none;margin:0;padding:0}
+.tl li{position:relative;padding:0 0 16px 22px;border-left:2px solid var(--line);margin-left:6px}
+.tl li:last-child{border-left-color:transparent}
+.tl li::before{content:"";position:absolute;left:-7px;top:3px;width:12px;height:12px;border-radius:50%;background:var(--panel);border:2px solid var(--idle)}
+.tl li:first-child::before{border-color:var(--accent);background:var(--accent)}
+.tl .d{font-size:14px}.tl .w{font-size:12.5px;color:var(--muted)}
+.prov{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-left:4px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13.5px;margin-bottom:14px}
+.kv b{color:var(--muted);font-weight:500}
+.mono{font-family:ui-monospace,Menlo,monospace}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2a2f3a;padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none;max-width:90vw}
+.toast.on{opacity:1}
+.banner{background:#2b2110;border:1px solid #5a4416;color:#f3d39a;border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:14px}
+.found{border:1px dashed #5a4416;border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;display:grid;gap:8px}
+.found h3{margin:0;font-size:13px;color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.fi{display:flex;gap:10px;align-items:center}.fi .t{flex:1;min-width:0}
+.fi .t small{display:block;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fi .btn{padding:6px 12px;font-size:13px}
+.sugg{background:var(--panel2);border:1px solid var(--line);border-radius:10px;max-height:200px;overflow:auto}
+.sugg div{padding:8px 12px;cursor:pointer}.sugg div:hover{background:var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><img src="/icon.svg" width="26" height="26" alt="">ParcelDeck</h1>
+    <div class="sp"></div>
+    <button class="iconbtn" id="refreshAll" title="Refresh all">⟳</button>
+    <button class="iconbtn" id="settingsBtn" title="Status">⚙︎</button>
+    <form method="post" action="/logout" id="logoutForm" hidden style="margin:0"><button class="iconbtn" title="Sign out">⎋</button></form>
+  </header>
+
+  <div id="banner"></div>
+
+  <form class="add" id="addForm" autocomplete="off">
+    <div class="row">
+      <input id="num" placeholder="Tracking number (any carrier)" required>
+      <input id="label" placeholder="What is it? (optional)">
+      <button class="btn" id="addBtn">Track</button>
+    </div>
+    <div class="links"><a id="bulkLink">Bulk add</a><span>Carrier is auto-detected — set it manually on the package if detection is wrong.</span></div>
+  </form>
+
+  <div class="tabs" id="tabs">
+    <button class="tab on" data-v="active">Active<span class="c" id="c-active"></span></button>
+    <button class="tab" data-v="delivered">Delivered<span class="c" id="c-delivered"></span></button>
+    <button class="tab" data-v="archived">Archived<span class="c" id="c-archived"></span></button>
+  </div>
+  <div id="sugg"></div>
+  <div class="list" id="list"></div>
+</div>
+
+<dialog id="detail"></dialog>
+<dialog id="bulk">
+  <div class="dh"><b>Bulk add</b><div class="w" style="color:var(--muted);font-size:13px">One per line. Optional label after the number, e.g. <span class="mono">LP00123456789012 USB hub</span></div></div>
+  <div class="db"><textarea id="bulkText" rows="10" style="width:100%" class="mono"></textarea></div>
+  <div class="df"><button class="btn" id="bulkGo">Add all</button><button class="btn ghost" onclick="bulk.close()">Cancel</button></div>
+</dialog>
+<dialog id="settings"></dialog>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+let view = "active", cfg = {};
+const STEPS = {InfoReceived:1, InTransit:2, AvailableForPickup:3, OutForDelivery:3, DeliveryFailure:3, Exception:2, Delivered:4};
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, {headers: {"Content-Type": "application/json"}, ...opts,
+    body: opts.body ? JSON.stringify(opts.body) : undefined});
+  if (r.status === 401) { location.href = "/login?next=/"; throw new Error("login required"); }
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.detail || `HTTP ${r.status}`);
+  return j;
+}
+function toast(m) { const t = $("#toast"); t.textContent = m; t.classList.add("on"); clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove("on"), 2600); }
+function ago(iso) {
+  if (!iso) return ""; const d = new Date(iso); if (isNaN(d)) return iso;
+  const s = (Date.now() - d) / 1000;
+  if (s < 3600) return Math.max(1, Math.round(s / 60)) + "m ago";
+  if (s < 86400) return Math.round(s / 3600) + "h ago";
+  if (s < 86400 * 7) return Math.round(s / 86400) + "d ago";
+  return d.toLocaleDateString();
+}
+const fmt = iso => { const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}); };
+const eta = p => p.eta_to || p.eta_from ? new Date(p.eta_to || p.eta_from).toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"}) : "";
+
+async function loadSuggestions() {
+  const S = $("#sugg");
+  if (view !== "active" || !cfg.email?.enabled) { S.innerHTML = ""; return; }
+  const list = await api("/api/suggestions").catch(() => []);
+  S.innerHTML = list.length ? `<div class="found"><h3>Found in email — track these?</h3>${list.map(s => `
+    <div class="fi"><div class="t"><span class="mono">${esc(s.number)}</span><small>${esc(s.sender)} · ${esc(s.subject)}</small></div>
+    <button class="btn" data-add="${esc(s.number)}">Track</button><button class="btn ghost" data-dis="${esc(s.number)}">✕</button></div>`).join("")}</div>` : "";
+}
+$("#sugg").onclick = async e => {
+  const a = e.target.dataset.add, d = e.target.dataset.dis;
+  if (!a && !d) return;
+  e.target.disabled = true;
+  try {
+    await api(`/api/suggestions/${encodeURIComponent(a || d)}/${a ? "add" : "dismiss"}`, {method: "POST"});
+    if (a) toast("Tracking");
+    await load();
+  } catch (x) { toast(x.message); e.target.disabled = false; }
+};
+
+async function load() {
+  loadSuggestions();
+  const j = await api("/api/packages?view=" + view);
+  for (const k of ["active", "delivered", "archived"]) $("#c-" + k).textContent = j.counts[k] || "";
+  const L = $("#list");
+  if (!j.packages.length) { L.innerHTML = `<div class="empty">${view === "active" ? "Nothing on the way. Add a tracking number above." : "Nothing here."}</div>`; return; }
+  L.innerHTML = j.packages.map(p => {
+    const step = STEPS[p.status] || 0;
+    return `<div class="card s-${esc(p.status)}" data-id="${p.id}">
+      <div class="top"><div class="title">${esc(p.label || p.carrier_name || p.number)}<small>${esc(p.number)}${p.label && p.carrier_name ? " · " + esc(p.carrier_name) : ""}</small></div>
+      <span class="pill">${esc(p.status_label)}</span></div>
+      <div class="bar">${[1,2,3,4].map(i => `<i class="${i <= step ? "on" : ""}"></i>`).join("")}</div>
+      ${p.last_event ? `<div class="last">${esc(p.last_event)}</div>` : ""}
+      ${p.register_error ? `<div class="err">⚠ ${esc(p.register_error)}</div>` : ""}
+      <div class="meta">${p.source === "email" ? `<span title="Imported from Gmail">✉︎</span>` : ""}${p.last_location ? `<span>📍 ${esc(p.last_location)}</span>` : ""}${p.last_event_time ? `<span>${ago(p.last_event_time)}</span>` : ""}${eta(p) && p.status !== "Delivered" ? `<span>ETA ${eta(p)}</span>` : ""}</div>
+    </div>`;
+  }).join("");
+}
+
+async function openDetail(id) {
+  const p = await api("/api/packages/" + id);
+  const D = $("#detail");
+  D.innerHTML = `<div class="dh"><div class="top"><div class="title" style="font-size:17px">${esc(p.label || p.number)}<small>${esc(p.number)}</small></div><span class="pill s-${esc(p.status)}">${esc(p.status_label)}</span></div></div>
+  <div class="db">
+    <div class="kv">
+      <b>Carrier</b><span>${esc(p.carrier_name || "Detecting…")}${p.carrier_code ? ` <span class="prov">#${p.carrier_code}</span>` : ""}</span>
+      ${eta(p) ? `<b>Estimated</b><span>${eta(p)}</span>` : ""}
+      <b>Added</b><span>${fmt(p.created_at)}</span>
+      <b>Checked</b><span>${p.last_checked ? ago(p.last_checked) : "never"}</span>
+      ${p.register_error ? `<b>Error</b><span class="err">${esc(p.register_error)}</span>` : ""}
+    </div>
+    ${p.events.length ? `<ul class="tl">${p.events.map(e => `<li><div class="d">${esc(e.description)}</div><div class="w">${fmt(e.time)}${e.location ? " · " + esc(e.location) : ""}${p.providers.length > 1 && e.provider ? `<span class="prov">${esc(e.provider)}</span>` : ""}</div></li>`).join("")}</ul>`
+      : `<div class="empty" style="padding:20px">No scans yet. New numbers (especially AliExpress) can take 1–3 days to show events.</div>`}
+  </div>
+  <div class="df">
+    <button class="btn" data-a="refresh">Refresh</button>
+    <button class="btn ghost" data-a="rename">Rename</button>
+    <button class="btn ghost" data-a="carrier">Set carrier</button>
+    <button class="btn ghost" data-a="archive">${p.archived ? "Unarchive" : "Archive"}</button>
+    <a class="btn ghost" style="text-decoration:none" target="_blank" rel="noopener" href="https://t.17track.net/en#nums=${encodeURIComponent(p.number)}">17TRACK ↗</a>
+    <button class="btn danger" data-a="delete">Delete</button>
+    <button class="btn ghost" data-a="close" style="margin-left:auto">Close</button>
+  </div>
+  <div id="carrierBox" class="db" style="display:none;padding-top:0"><input id="carrierQ" placeholder="Search carriers (e.g. Cainiao, USPS, Yanwen)" style="width:100%;margin-bottom:6px"><div class="sugg" id="carrierList"></div></div>`;
+  D.onclick = async ev => {
+    if (ev.target === D) return D.close();
+    const pick = ev.target.closest("[data-code]");
+    if (pick) {
+      toast("Changing carrier…");
+      try { await api("/api/packages/" + id, {method: "PATCH", body: {carrier: +pick.dataset.code}}); await openDetail(id); load(); }
+      catch (err) { toast(err.message); }
+      return;
+    }
+    const a = ev.target.dataset?.a; if (!a) return;
+    try {
+      if (a === "close") return D.close();
+      if (a === "refresh") { ev.target.disabled = true; await api(`/api/packages/${id}/refresh`, {method: "POST"}); toast("Refreshed"); }
+      if (a === "rename") { const l = prompt("Label", p.label || ""); if (l === null) return; await api("/api/packages/" + id, {method: "PATCH", body: {label: l}}); }
+      if (a === "archive") { await api("/api/packages/" + id, {method: "PATCH", body: {archived: !p.archived}}); D.close(); load(); return; }
+      if (a === "delete") { if (!confirm("Delete this package? (Its 17TRACK quota is not refunded.)")) return; await api("/api/packages/" + id, {method: "DELETE"}); D.close(); load(); return; }
+      if (a === "carrier") { $("#carrierBox").style.display = "block"; $("#carrierQ").focus(); searchCarriers(""); return; }
+      await openDetail(id); load();
+    } catch (e) { toast(e.message); ev.target.disabled = false; }
+  };
+  let t; const q = () => $("#carrierQ");
+  async function searchCarriers(s) {
+    const r = await api("/api/carriers?q=" + encodeURIComponent(s));
+    $("#carrierList").innerHTML = r.length ? r.map(c => `<div data-code="${c.code}">${esc(c.name)} <span class="prov">#${c.code}</span></div>`).join("") : `<div style="color:var(--muted)">No match${/^\d+$/.test(s) ? ` — use code #${esc(s)} anyway` : ""}</div>`;
+  }
+  D.oninput = e => { if (e.target.id === "carrierQ") { clearTimeout(t); t = setTimeout(() => searchCarriers(q().value), 200); } };
+  if (!D.open) D.showModal();
+}
+
+async function add(body, btn) {
+  btn.disabled = true;
+  try {
+    const r = await api("/api/packages", {method: "POST", body});
+    const parts = [];
+    if (r.added.length) parts.push(`Added ${r.added.length}`);
+    if (r.existing.length) parts.push(`${r.existing.length} already tracked`);
+    if (r.invalid.length) parts.push(`${r.invalid.length} invalid`);
+    toast(parts.join(" · ") || "Nothing added");
+    view = "active"; setTab(); await load(); return true;
+  } catch (e) { toast(e.message); return false; } finally { btn.disabled = false; }
+}
+
+function setTab() { document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.v === view)); }
+
+$("#addForm").onsubmit = async e => {
+  e.preventDefault();
+  if (await add({number: $("#num").value.trim(), label: $("#label").value.trim()}, $("#addBtn"))) { $("#num").value = ""; $("#label").value = ""; }
+};
+$("#bulkLink").onclick = () => $("#bulk").showModal();
+$("#bulkGo").onclick = async () => { if (await add({numbers: $("#bulkText").value}, $("#bulkGo"))) { $("#bulkText").value = ""; $("#bulk").close(); } };
+$("#tabs").onclick = e => { const v = e.target.closest(".tab")?.dataset.v; if (v) { view = v; setTab(); load(); } };
+$("#list").onclick = e => { const c = e.target.closest(".card"); if (c) openDetail(c.dataset.id).catch(err => toast(err.message)); };
+$("#refreshAll").onclick = async e => { e.target.disabled = true; toast("Refreshing…"); try { await api("/api/refresh-all", {method: "POST"}); await load(); toast("Up to date"); } catch (x) { toast(x.message); } e.target.disabled = false; };
+
+$("#settingsBtn").onclick = async () => {
+  const S = $("#settings"); cfg = await api("/api/config"); const qd = await api("/api/quota").catch(e => ({error: e.message}));
+  const em = cfg.email || {};
+  const emLine = !em.enabled ? "off (set GMAIL_ADDRESS + GMAIL_APP_PASSWORD)"
+    : `${esc(em.address)} · every ${em.every} min · ${em.mode === "auto" ? "auto-add" : "review all"}<br><span style="color:var(--muted)">${em.last_scan ? "Last scan " + ago(em.last_scan) + ` (${em.last_checked} new email${em.last_checked == 1 ? "" : "s"}, ${em.last_added} added)` : "Not scanned yet"}</span>${em.last_error ? `<br><span class="err">${esc(em.last_error)}</span>` : ""}`;
+  const qt = qd.error ? `<span class="err">${esc(qd.error)}</span>` : `${esc(qd.quota_remain ?? "?")} of ${esc(qd.quota_total ?? "?")} remaining <span style="color:var(--muted)">(used ${esc(qd.quota_used ?? "?")}, today ${esc(qd.today_used ?? "?")})</span>`;
+  S.innerHTML = `<div class="dh"><b>Status</b></div><div class="db"><div class="kv">
+    <b>17TRACK key</b><span>${cfg.api_key_set ? "✓ set" : '<span class="err">not set</span>'}</span>
+    <b>Quota</b><span>${qt}</span>
+    <b>Polling</b><span>every ${cfg.poll_minutes} min</span>
+    <b>Webhook</b><span class="mono" style="word-break:break-all">${cfg.webhook_url ? esc(cfg.webhook_url) : "set PUBLIC_URL to show"}</span>
+    <b>Notifications</b><span>${cfg.notifications ? cfg.notifications + " Apprise target(s)" : "off (set APPRISE_URLS)"}</span>
+    <b>Gmail</b><span>${emLine}</span>
+  </div><div style="color:var(--muted);font-size:13px">Each <i>new</i> tracking number uses 1 quota. Refreshing, polling and webhooks are free.</div></div>
+  <div class="df">${em.enabled ? '<button class="btn" id="scanE">Scan email now</button>' : ""}${cfg.notifications ? '<button class="btn ghost" id="testN">Send test notification</button>' : ""}<button class="btn ghost" style="margin-left:auto" onclick="settings.close()">Close</button></div>`;
+  S.showModal();
+  const se = $("#scanE"); if (se) se.onclick = async () => {
+    se.disabled = true; se.textContent = "Scanning…";
+    try { const r = await api("/api/email/scan", {method: "POST"}); toast(`${r.checked} new email(s) · ${r.added.length} added · ${r.queued} to review`); S.close(); load(); }
+    catch (e) { toast(e.message); se.disabled = false; se.textContent = "Scan email now"; }
+  };
+  const tn = $("#testN"); if (tn) tn.onclick = async () => { try { const r = await api("/api/notify/test", {method: "POST"}); toast(r.ok ? "Sent" : "Send failed — check logs"); } catch (e) { toast(e.message); } };
+};
+
+async function init() {
+  cfg = await api("/api/config");
+  $("#logoutForm").hidden = !cfg.auth;
+  $("#banner").innerHTML = cfg.api_key_set ? "" : `<div class="banner">Set <span class="mono">TRACK17_API_KEY</span> in the container environment — get a key at admin.17track.net.</div>`;
+  await load();
+}
+init().catch(() => {});
+setInterval(() => { if (!document.hidden && !document.querySelector("dialog[open]")) load().catch(() => {}); }, 60000);
+</script>
+</body>
+</html>

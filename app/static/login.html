@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg">
+<link rel="apple-touch-icon" href="/icon.svg">
+<title>Sign in · ParcelDeck</title>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0f1115;color:#e8eaf0;font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif}
+body{display:flex;align-items:center;justify-content:center;padding:20px}
+form{width:100%;max-width:340px;background:#171a21;border:1px solid #2a2f3a;border-radius:18px;padding:26px 22px;display:grid;gap:12px}
+h1{margin:0 0 6px;font-size:20px;display:flex;align-items:center;gap:9px}
+label{font-size:13px;color:#8b93a5;display:grid;gap:5px}
+input{font:inherit;color:inherit;background:#1e222b;border:1px solid #2a2f3a;border-radius:10px;padding:11px 12px;outline:none}
+input:focus{border-color:#f5a524}
+button{font:inherit;background:#f5a524;color:#1a1200;border:0;border-radius:10px;padding:11px;font-weight:650;cursor:pointer;margin-top:4px}
+.err{color:#ff5d5d;font-size:14px}
+.err:empty{display:none}
+</style>
+</head>
+<body>
+<form method="post" action="/login">
+  <h1><img src="/icon.svg" width="26" height="26" alt="">ParcelDeck</h1>
+  <div class="err">{{ERROR}}</div>
+  <label>Username<input name="username" autocomplete="username" autocapitalize="none" autocorrect="off" required autofocus></label>
+  <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+  <input type="hidden" name="next" value="{{NEXT}}">
+  <button>Sign in</button>
+</form>
+</body>
+</html>

@@ -1,0 +1,11 @@
+services:
+  parceldeck:
+    image: ghcr.io/mstras/parceldeck:latest
+    # build: .          # uncomment to build locally instead of pulling
+    container_name: parceldeck
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    volumes:
+      - ./data:/data
+    env_file: .env
