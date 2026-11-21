@@ -6,6 +6,17 @@ Self-hosted package tracker for every carrier — USPS, UPS, FedEx, DHL, Amazon 
 Carrier data comes from the **17TRACK Tracking API** (one integration covers every carrier; no scrapers to
 maintain). Your package list, history and notifications live in SQLite on your server.
 
+
+<p align="center">
+  <img src="docs/screenshots/list-mobile.png" width="260" alt="Package list on a phone">
+  <img src="docs/screenshots/detail-mobile.png" width="260" alt="Package timeline: Cainiao to USPS">
+  <img src="docs/screenshots/status-mobile.png" width="260" alt="Status: quota, webhook, Gmail import">
+</p>
+
+<p align="center">
+  <img src="docs/screenshots/list-desktop.png" width="820" alt="Desktop view">
+</p>
+
 Features
 - Paste any tracking number → carrier auto-detected (manual override with searchable carrier list)
 - Multi-leg timeline: AliExpress shipments show Cainiao + the US last-mile carrier (USPS etc.) merged
@@ -43,13 +54,17 @@ In Dockhand: create a stack from `/mnt/two/Containers/parceldeck/compose.yaml`.
 
 ## Login
 
+<img src="docs/screenshots/login.png" width="260" align="right" alt="Sign-in page">
+
 Set `APP_USERNAME` and `APP_PASSWORD` in `.env` and restart. Every page and API call then requires signing in
 (except `/healthz` and the 17TRACK webhook, which is protected by its signature instead).
 
-- Sessions last `SESSION_DAYS` (default 30) and survive container restarts; sign out with ⎋ in the header.
+- Sessions last `SESSION_DAYS` (default 30) and survive container restarts; sign out with ⏻ in the header.
 - Changing `APP_PASSWORD` signs out every device.
 - 5 wrong attempts from one IP → that IP is locked out for 15 minutes.
 - The session signing key is generated once into `data/.session_secret` (or set `SESSION_SECRET`).
+
+<br clear="right">
 
 ## Pangolin + webhook (optional, recommended)
 

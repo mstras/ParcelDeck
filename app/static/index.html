@@ -73,9 +73,9 @@ dialog::backdrop{background:#000a}
 .toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2a2f3a;padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none;max-width:90vw}
 .toast.on{opacity:1}
 .banner{background:#2b2110;border:1px solid #5a4416;color:#f3d39a;border-radius:12px;padding:10px 12px;margin-bottom:14px;font-size:14px}
-.found{border:1px dashed #5a4416;border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;display:grid;gap:8px}
+.found{border:1px dashed #5a4416;border-radius:var(--radius);padding:10px 12px;margin-bottom:12px;display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
 .found h3{margin:0;font-size:13px;color:var(--accent);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-.fi{display:flex;gap:10px;align-items:center}.fi .t{flex:1;min-width:0}
+.fi{display:flex;gap:8px;align-items:center;min-width:0}.fi .t{flex:1;min-width:0;overflow:hidden}.fi .t .mono{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.fi .btn{flex-shrink:0}
 .fi .t small{display:block;color:var(--muted);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .fi .btn{padding:6px 12px;font-size:13px}
 .sugg{background:var(--panel2);border:1px solid var(--line);border-radius:10px;max-height:200px;overflow:auto}
@@ -89,7 +89,7 @@ dialog::backdrop{background:#000a}
     <div class="sp"></div>
     <button class="iconbtn" id="refreshAll" title="Refresh all">⟳</button>
     <button class="iconbtn" id="settingsBtn" title="Status">⚙︎</button>
-    <form method="post" action="/logout" id="logoutForm" hidden style="margin:0"><button class="iconbtn" title="Sign out">⎋</button></form>
+    <form method="post" action="/logout" id="logoutForm" hidden style="margin:0"><button class="iconbtn" title="Sign out">⏻</button></form>
   </header>
 
   <div id="banner"></div>
@@ -145,7 +145,8 @@ function ago(iso) {
   return d.toLocaleDateString();
 }
 const fmt = iso => { const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleString([], {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"}); };
-const eta = p => p.eta_to || p.eta_from ? new Date(p.eta_to || p.eta_from).toLocaleDateString([], {weekday:"short", month:"short", day:"numeric"}) : "";
+// ETAs are calendar dates sent as UTC midnight; format in UTC so they don't shift a day back in US time zones.
+const eta = p => p.eta_to || p.eta_from ? new Date(p.eta_to || p.eta_from).toLocaleDateString([], {weekday:"short", month:"short", day:"numeric", timeZone:"UTC"}) : "";
 
 async function loadSuggestions() {
   const S = $("#sugg");
