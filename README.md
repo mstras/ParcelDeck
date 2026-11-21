@@ -102,3 +102,7 @@ then ⚙︎ → *Send test notification*.
 `GET /api/packages?view=active|delivered|archived|all` · `POST /api/packages {number,label,carrier?}` or
 `{numbers:"multi\nline"}` · `GET|PATCH|DELETE /api/packages/{id}` · `POST /api/packages/{id}/refresh` ·
 `POST /api/refresh-all` · `GET /api/quota` · `GET /api/carriers?q=` · `POST /api/webhook/17track`
+
+## Releasing
+Add `release-notes/vX.Y.Z.md`, commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
+The workflow builds `ghcr.io/mstras/parceldeck:X.Y.Z` and publishes the GitHub release with those notes.
