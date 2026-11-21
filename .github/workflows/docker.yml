@@ -44,8 +44,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Package Chrome extension
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          jq --arg v "$VERSION" '.version=$v' extension/manifest.json > m.json && mv m.json extension/manifest.json
+          (cd extension && zip -qr "../parceldeck-extension-${GITHUB_REF_NAME}.zip" .)
       - uses: softprops/action-gh-release@v2
         with:
           name: ParcelDeck ${{ github.ref_name }}
           body_path: release-notes/${{ github.ref_name }}.md
+          files: parceldeck-extension-${{ github.ref_name }}.zip
           make_latest: true

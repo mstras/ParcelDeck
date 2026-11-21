@@ -181,7 +181,7 @@ async function load() {
       <div class="bar">${[1,2,3,4].map(i => `<i class="${i <= step ? "on" : ""}"></i>`).join("")}</div>
       ${p.last_event ? `<div class="last">${esc(p.last_event)}</div>` : ""}
       ${p.register_error ? `<div class="err">⚠ ${esc(p.register_error)}</div>` : ""}
-      <div class="meta">${p.source === "email" ? `<span title="Imported from Gmail">✉︎</span>` : ""}${p.last_location ? `<span>📍 ${esc(p.last_location)}</span>` : ""}${p.last_event_time ? `<span>${ago(p.last_event_time)}</span>` : ""}${eta(p) && p.status !== "Delivered" ? `<span>ETA ${eta(p)}</span>` : ""}</div>
+      <div class="meta">${p.source === "email" ? `<span title="Imported from Gmail">✉︎</span>` : p.source === "amazon" ? `<span title="Imported from Amazon">🛒</span>` : ""}${p.last_location ? `<span>📍 ${esc(p.last_location)}</span>` : ""}${p.last_event_time ? `<span>${ago(p.last_event_time)}</span>` : ""}${eta(p) && p.status !== "Delivered" ? `<span>ETA ${eta(p)}</span>` : ""}</div>
     </div>`;
   }).join("");
 }
@@ -206,6 +206,7 @@ async function openDetail(id) {
     <button class="btn ghost" data-a="rename">Rename</button>
     <button class="btn ghost" data-a="carrier">Set carrier</button>
     <button class="btn ghost" data-a="archive">${p.archived ? "Unarchive" : "Archive"}</button>
+    ${/^https:\/\/(www\.)?amazon\.com\//.test(p.link || "") ? `<a class="btn ghost" style="text-decoration:none" target="_blank" rel="noopener" href="${esc(p.link)}">Amazon ↗</a>` : ""}
     <a class="btn ghost" style="text-decoration:none" target="_blank" rel="noopener" href="https://t.17track.net/en#nums=${encodeURIComponent(p.number)}">17TRACK ↗</a>
     <button class="btn danger" data-a="delete">Delete</button>
     <button class="btn ghost" data-a="close" style="margin-left:auto">Close</button>
@@ -278,6 +279,7 @@ $("#settingsBtn").onclick = async () => {
     <b>Webhook</b><span class="mono" style="word-break:break-all">${cfg.webhook_url ? esc(cfg.webhook_url) : "set PUBLIC_URL to show"}</span>
     <b>Notifications</b><span>${cfg.notifications ? cfg.notifications + " Apprise target(s)" : "off (set APPRISE_URLS)"}</span>
     <b>Gmail</b><span>${emLine}</span>
+    <b>Chrome extension</b><span>Server URL <span class="mono" style="word-break:break-all">${esc(cfg.public_url || location.origin)}</span><br>Import key <span class="mono" id="itok" style="word-break:break-all">${esc(cfg.import_token)}</span><br><a id="copyTok" style="color:var(--muted);cursor:pointer;text-decoration:underline dotted">Copy key</a> · <a id="rotTok" style="color:var(--muted);cursor:pointer;text-decoration:underline dotted">New key</a></span>
   </div><div style="color:var(--muted);font-size:13px">Each <i>new</i> tracking number uses 1 quota. Refreshing, polling and webhooks are free.</div></div>
   <div class="df">${em.enabled ? '<button class="btn" id="scanE">Scan email now</button>' : ""}${cfg.notifications ? '<button class="btn ghost" id="testN">Send test notification</button>' : ""}<button class="btn ghost" style="margin-left:auto" onclick="settings.close()">Close</button></div>`;
   S.showModal();
@@ -285,6 +287,11 @@ $("#settingsBtn").onclick = async () => {
     se.disabled = true; se.textContent = "Scanning…";
     try { const r = await api("/api/email/scan", {method: "POST"}); toast(`${r.checked} new email(s) · ${r.added.length} added · ${r.queued} to review`); S.close(); load(); }
     catch (e) { toast(e.message); se.disabled = false; se.textContent = "Scan email now"; }
+  };
+  $("#copyTok").onclick = async () => { try { await navigator.clipboard.writeText($("#itok").textContent); toast("Copied"); } catch { toast("Select and copy it manually"); } };
+  $("#rotTok").onclick = async () => {
+    if (!confirm("Make a new import key? The extension will stop syncing until you paste the new one into it.")) return;
+    try { const r = await api("/api/import/token/rotate", {method: "POST"}); $("#itok").textContent = r.import_token; cfg.import_token = r.import_token; toast("New key created"); } catch (e) { toast(e.message); }
   };
   const tn = $("#testN"); if (tn) tn.onclick = async () => { try { const r = await api("/api/notify/test", {method: "POST"}); toast(r.ok ? "Sent" : "Send failed — check logs"); } catch (e) { toast(e.message); } };
 };

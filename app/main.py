@@ -122,6 +122,8 @@ def init_db():
         cols = {r[1] for r in c.execute("PRAGMA table_info(packages)")}
         if "source" not in cols:
             c.execute("ALTER TABLE packages ADD COLUMN source TEXT DEFAULT ''")
+        if "link" not in cols:
+            c.execute("ALTER TABLE packages ADD COLUMN link TEXT DEFAULT ''")
         c.execute("CREATE TABLE IF NOT EXISTS email_seen (key TEXT PRIMARY KEY, seen_at TEXT)")
         c.execute(
             """CREATE TABLE IF NOT EXISTS suggestions (
@@ -384,7 +386,7 @@ app = FastAPI(title="ParcelDeck", lifespan=lifespan)
 # ---------------------------------------------------------------- auth
 AUTH_ENABLED = bool(APP_PASSWORD)
 COOKIE = "pd_session"
-OPEN_PATHS = ("/login", "/logout", "/api/webhook/", "/healthz", "/manifest.webmanifest", "/icon.svg")
+OPEN_PATHS = ("/login", "/logout", "/api/webhook/", "/api/import/", "/healthz", "/manifest.webmanifest", "/icon.svg")
 FAILS: dict[str, list[float]] = {}  # ip -> failure timestamps
 
 
@@ -402,6 +404,35 @@ def _secret() -> bytes:
             f.write(s)
         os.chmod(path, 0o600)
         return s.encode()
+
+
+def _import_token() -> str:
+    """Token for the browser extension. Only grants access to /api/import/*."""
+    if os.getenv("IMPORT_TOKEN"):
+        return os.environ["IMPORT_TOKEN"].strip()
+    path = os.path.join(os.path.dirname(DB_PATH) or ".", ".import_token")
+    try:
+        with open(path) as f:
+            return f.read().strip()
+    except FileNotFoundError:
+        return _rotate_import_token()
+
+
+def _rotate_import_token() -> str:
+    path = os.path.join(os.path.dirname(DB_PATH) or ".", ".import_token")
+    tok = "pd_" + secrets.token_urlsafe(24)
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    with open(path, "w") as f:
+        f.write(tok)
+    os.chmod(path, 0o600)
+    return tok
+
+
+def import_authorized(request: Request) -> bool:
+    auth = request.headers.get("authorization", "")
+    if auth.lower().startswith("bearer ") and hmac.compare_digest(auth[7:].strip(), _import_token()):
+        return True
+    return not AUTH_ENABLED or valid_session(request.cookies.get(COOKIE, ""))
 
 
 def _sign(user: str, exp: int) -> str:
@@ -499,6 +530,8 @@ async def config():
         "poll_minutes": POLL_MINUTES,
         "webhook_url": (PUBLIC_URL + "/api/webhook/17track") if PUBLIC_URL else "",
         "auth": AUTH_ENABLED,
+        "import_token": _import_token(),
+        "public_url": PUBLIC_URL,
         "user": APP_USERNAME if AUTH_ENABLED else "",
         "email": {
             "enabled": EMAIL_ENABLED, "address": GMAIL_ADDRESS, "mode": EMAIL_MODE,
@@ -547,6 +580,91 @@ async def add_entries(entries: list[tuple[str, str]], carrier: Optional[int] = N
         await asyncio.sleep(1.5)  # give 17TRACK a moment before first pull
         await refresh_numbers(added)
     return {"added": added, "existing": skipped, "invalid": invalid}
+
+
+# ---------------------------------------------------------------- browser-extension import (Amazon)
+class AmazonShipment(BaseModel):
+    order_id: str = ""
+    shipment_id: str = ""
+    items: list[str] = []
+    tracking_id: str = ""
+    carrier: str = ""
+    status: str = ""
+    url: str = ""
+
+
+class AmazonImportIn(BaseModel):
+    shipments: list[AmazonShipment]
+
+
+def _amazon_label(items: list[str]) -> str:
+    items = [re.sub(r"\s+", " ", i).strip() for i in items if i and i.strip()]
+    if not items:
+        return "Amazon order"
+    first = items[0] if len(items[0]) <= 70 else items[0][:67].rstrip() + "…"
+    return f"{first} +{len(items) - 1} more" if len(items) > 1 else first
+
+
+def _safe_amazon_url(u: str) -> str:
+    return u if re.match(r"^https://(www\.|smile\.)?amazon\.com/", u or "") else ""
+
+
+@app.post("/api/import/ping")
+async def import_ping(request: Request):
+    if not import_authorized(request):
+        raise HTTPException(401, "bad import token")
+    return {"ok": True, "app": "ParcelDeck"}
+
+
+@app.post("/api/import/amazon")
+async def import_amazon(body: AmazonImportIn, request: Request):
+    if not import_authorized(request):
+        raise HTTPException(401, "bad import token")
+    new: list[tuple[str, str]] = []
+    links: dict[str, str] = {}
+    updated, no_tracking = 0, 0
+    with db() as c:
+        for sh in body.shipments[:100]:
+            num = re.sub(r"[\s\-]", "", sh.tracking_id or "").upper()
+            if not num or not NUM_RE.match(num):
+                no_tracking += 1
+                continue
+            link = _safe_amazon_url(sh.url)
+            row = c.execute("SELECT id, link, label, events_json FROM packages WHERE number=?", (num,)).fetchone()
+            if row is None:
+                if num not in links:
+                    new.append((num, _amazon_label(sh.items)))
+                links[num] = link
+                continue
+            sets, args = [], []
+            if link and not row["link"]:
+                sets.append("link=?"); args.append(link)
+            if sh.items and row["label"] in ("", "Amazon order"):
+                sets.append("label=?"); args.append(_amazon_label(sh.items))
+            # 17TRACK has nothing yet (common for Amazon-delivered TBA numbers): show Amazon's own status.
+            if sh.status and row["events_json"] in ("[]", "", None):
+                sets += ["last_event=?", "updated_at=?"]; args += [sh.status[:200], now_iso()]
+            if sets:
+                c.execute(f"UPDATE packages SET {', '.join(sets)} WHERE id=?", (*args, row["id"]))
+                updated += 1
+    added = (await add_entries(new, source="amazon", unarchive=False))["added"] if new else []
+    if added:
+        with db() as c:
+            for n in added:
+                c.execute("UPDATE packages SET link=? WHERE number=?", (links.get(n, ""), n))
+        await notify("📦 New Amazon packages", ", ".join(l for n, l in new if n in added)[:300])
+    log.info("Amazon import: %d shipment(s), %d added, %d updated, %d without tracking ID",
+             len(body.shipments), len(added), updated, no_tracking)
+    return {"added": added, "updated": updated, "no_tracking": no_tracking}
+
+
+@app.post("/api/import/token/rotate")
+async def rotate_token(request: Request):
+    if AUTH_ENABLED and not valid_session(request.cookies.get(COOKIE, "")):
+        raise HTTPException(401, "login required")
+    if os.getenv("IMPORT_TOKEN"):
+        raise HTTPException(400, "IMPORT_TOKEN is set in the environment — change it there")
+    return {"import_token": _rotate_import_token()}
 
 
 @app.post("/api/packages")

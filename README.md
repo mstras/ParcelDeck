@@ -22,6 +22,7 @@ Features
 - Multi-leg timeline: AliExpress shipments show Cainiao + the US last-mile carrier (USPS etc.) merged
 - Active / Delivered / Archived views, labels, bulk add, ETA when available
 - Background polling + optional 17TRACK webhook for near-instant updates
+- Amazon orders via a small Chrome extension (uses your browser's Amazon sign-in, no password stored)
 - Push/email notifications on status changes via Apprise (ntfy, Pushover, Telegram, Discord, email…)
 - Installable on iPhone home screen (PWA), username/password login
 
@@ -99,6 +100,38 @@ How it works
 Limits: Amazon packages delivered by Amazon itself often don't include a tracking number in the email (only a link
 into your Amazon account). Those can't be picked up. Google Workspace (company) accounts don't allow app passwords.
 To revoke access, delete the app password in your Google account.
+
+## Amazon (Chrome extension)
+
+Amazon has no API for your own orders, and its shipping emails often leave out the tracking number. The
+**ParcelDeck for Amazon** extension fills that gap using the Amazon sign-in already in your Chrome:
+
+<p>
+  <img src="docs/screenshots/extension-popup.png" width="300" alt="Extension popup">
+  <img src="docs/screenshots/extension-options.png" width="420" alt="Extension settings">
+</p>
+
+1. Download `parceldeck-extension-vX.Y.Z.zip` from the latest [release](https://github.com/mstras/ParcelDeck/releases)
+   and unzip it somewhere permanent (or use the `extension/` folder of this repo).
+2. Chrome → `chrome://extensions` → turn on **Developer mode** → **Load unpacked** → pick the folder.
+3. The settings page opens. In ParcelDeck, ⚙︎ → *Chrome extension* row: copy the **Server URL** and **Import key**,
+   paste them in, and click **Save & test** (Chrome asks to allow access to your ParcelDeck site).
+
+What it does
+- Every hour (while Chrome is open) it loads your last 30 days of orders, opens the tracking page of each
+  shipment it hasn't seen yet, reads the carrier and **Tracking ID** (UPS `1Z…`, USPS, Amazon `TBA…`, …) and sends
+  it to ParcelDeck labeled with the item name, with an **Amazon ↗** link back to the order.
+- Already-delivered and not-yet-shipped shipments are skipped; tracking pages are only loaded once per shipment
+  (max 15 per sync, a couple of seconds apart).
+- Pages you open yourself on Amazon (order list, *Track package*) are imported too.
+- If you're signed out of Amazon, the toolbar icon shows **!** — sign in and click *Sync now*.
+
+Privacy & security
+- The extension never sees your Amazon password and only reads amazon.com order/tracking pages.
+- The import key only allows adding packages (`/api/import/*`); it can't read or change anything else.
+  Make a new one any time with ⚙︎ → *New key* (or pin it with `IMPORT_TOKEN`).
+- Automating your Amazon account is against Amazon's terms. The extension stays at roughly human browsing
+  levels on your own browser and IP, but use it knowing that.
 
 ## Notifications
 
