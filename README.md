@@ -154,3 +154,6 @@ then ⚙︎ → *Send test notification*.
 ## Releasing
 Add `release-notes/vX.Y.Z.md`, commit, then `git tag vX.Y.Z && git push origin vX.Y.Z`.
 The workflow builds `ghcr.io/mstras/parceldeck:X.Y.Z` and publishes the GitHub release with those notes.
+
+## License
+[MIT](LICENSE) © 2026 Michael Strasser
