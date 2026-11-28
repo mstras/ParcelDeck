@@ -26,25 +26,25 @@ Features
 - Push/email notifications on status changes via Apprise (ntfy, Pushover, Telegram, Discord, email…)
 - Installable on iPhone home screen (PWA), username/password login
 
-## Deploy on homeserv
+## Deploy
 
 The image is built by GitHub Actions on every push to `main` and published as
 `ghcr.io/mstras/parceldeck:latest` (plus `:sha-xxxxxxx` and `:1.2.3` for `v1.2.3` tags).
 
 ```bash
-mkdir -p /mnt/two/Containers/parceldeck && cd /mnt/two/Containers/parceldeck
+mkdir -p ~/parceldeck && cd ~/parceldeck
 curl -fsSLO https://raw.githubusercontent.com/mstras/ParcelDeck/main/compose.yaml
 curl -fsSL https://raw.githubusercontent.com/mstras/ParcelDeck/main/.env.example -o .env
 nano .env                                  # set TRACK17_API_KEY at minimum
 docker compose pull && docker compose up -d
 ```
 
-Update later with `docker compose pull && docker compose up -d` (or redeploy the stack in Dockhand).
+Update later with `docker compose pull && docker compose up -d` (or redeploy the stack in your stack manager).
 To build locally instead, clone the repo and uncomment `build: .` in `compose.yaml`.
 
-Open `http://192.168.50.229:8787`.
+Open `http://<server-ip>:8787`.
 
-In Dockhand: create a stack from `/mnt/two/Containers/parceldeck/compose.yaml`.
+In a stack manager such as Dockhand or Portainer: create a stack from `~/parceldeck/compose.yaml`.
 
 ## 17TRACK API key
 
@@ -67,12 +67,12 @@ Set `APP_USERNAME` and `APP_PASSWORD` in `.env` and restart. Every page and API 
 
 <br clear="right">
 
-## Pangolin + webhook (optional, recommended)
+## Reverse proxy + webhook (optional, recommended)
 
-1. Add a Pangolin resource, e.g. `parcels.strasserco.com` → `192.168.50.229:8787`.
-2. If you use Pangolin auth (SSO) on it, add a **bypass rule for path `/api/webhook/*`** so 17TRACK can reach it.
+1. Publish ParcelDeck through your reverse proxy (Pangolin, Caddy, Traefik, …), e.g. `parcels.example.com` → `<server-ip>:8787`.
+2. If the proxy puts a login (SSO) in front of it, add a **bypass rule for path `/api/webhook/*`** so 17TRACK can reach it.
 3. In admin.17track.net → Settings → **Webhook**, set URL to
-   `https://parcels.strasserco.com/api/webhook/17track` (API version v2.2).
+   `https://parcels.example.com/api/webhook/17track` (API version v2.2).
 4. Set `PUBLIC_URL` in `.env` so the app shows that URL on its status screen.
 
 Webhooks are signature-verified with your API key. Without a webhook, polling every `POLL_MINUTES` still works.
@@ -144,7 +144,7 @@ then ⚙︎ → *Send test notification*.
 - If 17TRACK guesses the wrong carrier, open the package → **Set carrier**.
 - Delivered packages stop polling automatically. Archive them to clean up; Delete also removes them from 17TRACK
   (quota isn't refunded).
-- Data: `./data/parceldeck.db` — back it up with the rest of `/mnt/two/Containers`.
+- Data: `./data/parceldeck.db` — back it up with the rest of your container data.
 
 ## API
 `GET /api/packages?view=active|delivered|archived|all` · `POST /api/packages {number,label,carrier?}` or
